@@ -1007,7 +1007,6 @@
 //   }
 // }
 
-
 async function loadMyNFTs() {
   if (!contract || !account) return;
 
@@ -1034,12 +1033,12 @@ async function loadMyNFTs() {
         image: ""
       };
 
-      // Chỉ xử lý URI dạng base64 JSON giống bạn gửi
+      // Nếu URI là base64 JSON
       if (uri.startsWith("data:application/json;base64,")) {
         try {
-          const base64 = uri.split(",")[1];        // bỏ prefix
-          const jsonStr = atob(base64);            // decode base64
-          nftData = JSON.parse(jsonStr);           // parse JSON
+          const base64 = uri.split(",")[1];
+          const jsonStr = atob(base64);           // decode base64
+          nftData = JSON.parse(jsonStr);          // parse JSON
         } catch (e) {
           console.warn("⚠️ Failed to parse base64 JSON for token", tokenId, e);
         }
@@ -1052,21 +1051,28 @@ async function loadMyNFTs() {
       div.style.wordBreak = "break-word";
 
       // Hiển thị thông tin NFT
+      const traitsStr = nftData.attributes && nftData.attributes.length > 0
+        ? nftData.attributes.map(a => `${a.trait_type}: ${a.value}`).join(", ")
+        : "None";
+
       div.innerHTML = `
         <strong>${nftData.name}</strong><br>
         ${nftData.description}<br>
         <em>Token ID:</em> ${tokenId}<br>
-        <em>Traits:</em> ${nftData.attributes.map(a => `${a.trait_type}: ${a.value}`).join(", ")}
+        <em>Traits:</em> ${traitsStr}
       `;
 
-      // Nếu có ảnh, hiển thị
+      // Hiển thị ảnh nếu có
       if (nftData.image) {
         const img = document.createElement("img");
+
+        // Nếu là IPFS, đổi sang gateway HTTP
         if (nftData.image.startsWith("ipfs://")) {
           img.src = nftData.image.replace("ipfs://", "https://ipfs.io/ipfs/");
         } else {
           img.src = nftData.image;
         }
+
         img.style.width = "150px";
         img.style.height = "150px";
         img.style.display = "block";
@@ -1082,7 +1088,6 @@ async function loadMyNFTs() {
     nftContainer.innerHTML = "❌ Error loading NFTs: " + err.message;
   }
 }
-
 
 	  
     async function refund() {
