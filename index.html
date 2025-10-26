@@ -970,16 +970,9 @@
     }
   }
 
-  // 🧩 Hàm decode an toàn cho metadata base64
-function decodeBase64Json(dataUri) {
-  const base64 = dataUri.substring(dataUri.indexOf(",") + 1);
-  const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-  const text = new TextDecoder("utf-8").decode(bytes);
-  return JSON.parse(text);
-}
 
-// 🖼️ Hàm hiển thị NFT bạn đang sở hữu
-async function loadMyNFTs() {
+	  
+  async function loadMyNFTs() {
   if (!contract || !account) return;
 
   const nftContainer = document.getElementById("nftContainer");
@@ -992,47 +985,23 @@ async function loadMyNFTs() {
       return;
     }
 
-    nftContainer.innerHTML = "";
+    nftContainer.innerHTML = "<h3>📦 Your NFT TokenURIs:</h3>";
 
     for (let i = 0; i < balance; i++) {
       const tokenId = await contract.methods.tokenOfOwnerByIndex(account, i).call();
       const uri = await contract.methods.tokenURI(tokenId).call();
 
-      let metadata;
-      try {
-        // Giải mã metadata từ Base64 JSON
-        metadata = decodeBase64Json(uri);
-      } catch (err) {
-        console.error("❌ Decode error:", err);
-        nftContainer.innerHTML += `<p>⚠️ Error decoding token ${tokenId}</p>`;
-        continue;
-      }
+      console.log(`Token #${tokenId} URI:`, uri);
 
-      // Xử lý ảnh IPFS
-      let imgUrl = metadata.image;
-      if (imgUrl && imgUrl.startsWith("ipfs://")) {
-        imgUrl = imgUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-      }
-
-      // Tạo khung hiển thị NFT
       const div = document.createElement("div");
-      div.style.border = "1px solid #ccc";
-      div.style.borderRadius = "10px";
-      div.style.padding = "10px";
-      div.style.marginBottom = "15px";
-      div.style.background = "#fafafa";
-      div.style.textAlign = "center";
-      div.innerHTML = `
-        <strong>${metadata.name || "Unnamed NFT"} #${tokenId}</strong><br>
-        <em>${metadata.description || ""}</em><br><br>
-        <img src="${imgUrl}" alt="NFT Image" style="max-width: 200px; border-radius: 10px;"><br><br>
-        <span><b>Rarity:</b> ${metadata.attributes?.[0]?.value || "Unknown"}</span>
-      `;
+      div.style.padding = "8px";
+      div.style.borderBottom = "1px solid #ddd";
+      div.textContent = `Token #${tokenId}: ${uri}`;
       nftContainer.appendChild(div);
     }
 
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error loading NFTs:", err);
     nftContainer.innerHTML = "❌ Error loading NFTs: " + err.message;
   }
 }
