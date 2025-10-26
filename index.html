@@ -1021,34 +1021,47 @@ async function loadMyNFTs() {
       return;
     }
 
-    nftContainer.innerHTML = "<h3>📦 Your NFT TokenURIs & Images:</h3>";
+    nftContainer.innerHTML = "<h3>📦 Your NFT Collection:</h3>";
 
     for (let i = 0; i < balance; i++) {
       const tokenId = await contract.methods.tokenOfOwnerByIndex(account, i).call();
       const uri = await contract.methods.tokenURI(tokenId).call();
 
-      // Decode JSON base64
-      let nftData = {};
+      let nftData = {
+        name: `Token #${tokenId}`,
+        description: "",
+        attributes: [],
+        image: ""
+      };
+
+      // Chỉ xử lý URI dạng base64 JSON giống bạn gửi
       if (uri.startsWith("data:application/json;base64,")) {
-        const base64 = uri.split(",")[1];
-        const jsonStr = atob(base64);
-        nftData = JSON.parse(jsonStr);
-      } else {
-        nftData.image = uri;
+        try {
+          const base64 = uri.split(",")[1];        // bỏ prefix
+          const jsonStr = atob(base64);            // decode base64
+          nftData = JSON.parse(jsonStr);           // parse JSON
+        } catch (e) {
+          console.warn("⚠️ Failed to parse base64 JSON for token", tokenId, e);
+        }
       }
 
       // Tạo div hiển thị
       const div = document.createElement("div");
       div.style.padding = "8px";
       div.style.borderBottom = "1px solid #ddd";
-      div.style.wordBreak = "break-word"; 
+      div.style.wordBreak = "break-word";
 
-      div.innerHTML = `<strong>Token #${tokenId}:</strong> ${uri}`;
+      // Hiển thị thông tin NFT
+      div.innerHTML = `
+        <strong>${nftData.name}</strong><br>
+        ${nftData.description}<br>
+        <em>Token ID:</em> ${tokenId}<br>
+        <em>Traits:</em> ${nftData.attributes.map(a => `${a.trait_type}: ${a.value}`).join(", ")}
+      `;
 
-      // Create <img>
+      // Nếu có ảnh, hiển thị
       if (nftData.image) {
         const img = document.createElement("img");
-        // IPFS to HTTP
         if (nftData.image.startsWith("ipfs://")) {
           img.src = nftData.image.replace("ipfs://", "https://ipfs.io/ipfs/");
         } else {
@@ -1058,7 +1071,6 @@ async function loadMyNFTs() {
         img.style.height = "150px";
         img.style.display = "block";
         img.style.marginTop = "8px";
-
         div.appendChild(img);
       }
 
