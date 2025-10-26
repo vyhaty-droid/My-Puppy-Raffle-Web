@@ -972,7 +972,43 @@
 
 
 	  
-  async function loadMyNFTs() {
+  // async function loadMyNFTs() {
+//   if (!contract || !account) return;
+
+//   const nftContainer = document.getElementById("nftContainer");
+//   nftContainer.innerHTML = "🔄 Loading...";
+
+//   try {
+//     const balance = await contract.methods.balanceOf(account).call();
+//     if (Number(balance) === 0) {
+//       nftContainer.innerHTML = "😔 You don't own any Puppy NFTs yet.";
+//       return;
+//     }
+
+//     nftContainer.innerHTML = "<h3>📦 Your NFT TokenURIs:</h3>";
+
+//     for (let i = 0; i < balance; i++) {
+//       const tokenId = await contract.methods.tokenOfOwnerByIndex(account, i).call();
+//       const uri = await contract.methods.tokenURI(tokenId).call();
+
+//       console.log(`Token #${tokenId} URI:`, uri);
+
+//       const div = document.createElement("div");
+//       div.style.padding = "8px";
+//       div.style.borderBottom = "1px solid #ddd";
+// 	  div.style.wordBreak = "break-word";
+//       div.textContent = `Token #${tokenId}: ${uri}`;
+//       nftContainer.appendChild(div);
+//     }
+
+//   } catch (err) {
+//     console.error("❌ Error loading NFTs:", err);
+//     nftContainer.innerHTML = "❌ Error loading NFTs: " + err.message;
+//   }
+// }
+
+
+async function loadMyNFTs() {
   if (!contract || !account) return;
 
   const nftContainer = document.getElementById("nftContainer");
@@ -985,19 +1021,47 @@
       return;
     }
 
-    nftContainer.innerHTML = "<h3>📦 Your NFT TokenURIs:</h3>";
+    nftContainer.innerHTML = "<h3>📦 Your NFT TokenURIs & Images:</h3>";
 
     for (let i = 0; i < balance; i++) {
       const tokenId = await contract.methods.tokenOfOwnerByIndex(account, i).call();
       const uri = await contract.methods.tokenURI(tokenId).call();
 
-      console.log(`Token #${tokenId} URI:`, uri);
+      // Decode JSON base64
+      let nftData = {};
+      if (uri.startsWith("data:application/json;base64,")) {
+        const base64 = uri.split(",")[1];
+        const jsonStr = atob(base64);
+        nftData = JSON.parse(jsonStr);
+      } else {
+        nftData.image = uri;
+      }
 
+      // Tạo div hiển thị
       const div = document.createElement("div");
       div.style.padding = "8px";
       div.style.borderBottom = "1px solid #ddd";
-	  div.style.wordBreak = "break-word";
-      div.textContent = `Token #${tokenId}: ${uri}`;
+      div.style.wordBreak = "break-word"; 
+
+      div.innerHTML = `<strong>Token #${tokenId}:</strong> ${uri}`;
+
+      // Create <img>
+      if (nftData.image) {
+        const img = document.createElement("img");
+        // IPFS to HTTP
+        if (nftData.image.startsWith("ipfs://")) {
+          img.src = nftData.image.replace("ipfs://", "https://ipfs.io/ipfs/");
+        } else {
+          img.src = nftData.image;
+        }
+        img.style.width = "150px";
+        img.style.height = "150px";
+        img.style.display = "block";
+        img.style.marginTop = "8px";
+
+        div.appendChild(img);
+      }
+
       nftContainer.appendChild(div);
     }
 
@@ -1007,6 +1071,8 @@
   }
 }
 
+
+	  
     async function refund() {
       const index = document.getElementById("refundIndex").value;
       try {
