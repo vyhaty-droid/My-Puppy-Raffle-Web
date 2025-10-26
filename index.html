@@ -1007,6 +1007,7 @@
 //   }
 // }
 
+
 async function loadMyNFTs() {
   if (!contract || !account) return;
 
@@ -1026,53 +1027,47 @@ async function loadMyNFTs() {
       const tokenId = await contract.methods.tokenOfOwnerByIndex(account, i).call();
       const uri = await contract.methods.tokenURI(tokenId).call();
 
-      let nftData = {
-        name: `Token #${tokenId}`,
-        description: "",
-        attributes: [],
-        image: ""
-      };
+      let nftData = {};
 
-      // Nếu URI là base64 JSON
       if (uri.startsWith("data:application/json;base64,")) {
         try {
-          const base64 = uri.split(",")[1];
-          const jsonStr = atob(base64);           // decode base64
-          nftData = JSON.parse(jsonStr);          // parse JSON
+          const base64 = uri.split(",")[1].trim();   // trim thừa
+          const jsonStr = atob(base64);
+          nftData = JSON.parse(jsonStr);
         } catch (e) {
           console.warn("⚠️ Failed to parse base64 JSON for token", tokenId, e);
+          nftData = {};
         }
       }
 
-      // Tạo div hiển thị
+      const name = nftData.name?.trim() || `Token #${tokenId}`;
+      const description = nftData.description?.trim() || "";
+      const attributes = Array.isArray(nftData.attributes) ? nftData.attributes : [];
+      let image = nftData.image?.trim() || "";
+
+      if (image.startsWith("ipfs://")) {
+        image = image.replace("ipfs://", "https://ipfs.io/ipfs/");
+      }
+
       const div = document.createElement("div");
       div.style.padding = "8px";
       div.style.borderBottom = "1px solid #ddd";
       div.style.wordBreak = "break-word";
 
-      // Hiển thị thông tin NFT
-      const traitsStr = nftData.attributes && nftData.attributes.length > 0
-        ? nftData.attributes.map(a => `${a.trait_type}: ${a.value}`).join(", ")
+      const traitsStr = attributes.length
+        ? attributes.map(a => `${a.trait_type}: ${a.value}`).join(", ")
         : "None";
 
       div.innerHTML = `
-        <strong>${nftData.name}</strong><br>
-        ${nftData.description}<br>
+        <strong>${name}</strong><br>
+        ${description}<br>
         <em>Token ID:</em> ${tokenId}<br>
         <em>Traits:</em> ${traitsStr}
       `;
 
-      // Hiển thị ảnh nếu có
-      if (nftData.image) {
+      if (image) {
         const img = document.createElement("img");
-
-        // Nếu là IPFS, đổi sang gateway HTTP
-        if (nftData.image.startsWith("ipfs://")) {
-          img.src = nftData.image.replace("ipfs://", "https://ipfs.io/ipfs/");
-        } else {
-          img.src = nftData.image;
-        }
-
+        img.src = image;
         img.style.width = "150px";
         img.style.height = "150px";
         img.style.display = "block";
