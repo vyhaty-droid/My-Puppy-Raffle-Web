@@ -1007,7 +1007,6 @@
 //   }
 // }
 
-
 async function loadMyNFTs() {
   if (!contract || !account) return;
 
@@ -1031,8 +1030,13 @@ async function loadMyNFTs() {
 
       if (uri.startsWith("data:application/json;base64,")) {
         try {
-          const base64 = uri.split(",")[1].trim();   // trim thừa
-          const jsonStr = atob(base64);
+          const base64 = uri.split(",")[1].trim();
+          let jsonStr = atob(base64);
+
+          // ⚡ PATCH TỰ ĐỘNG: Thêm dấu ngoặc kép cho value nếu bị thiếu
+          // Ví dụ: {"trait_type":"rarity","value":common} → {"trait_type":"rarity","value":"common"}
+          jsonStr = jsonStr.replace(/"value":\s*([a-zA-Z0-9_]+)/g, '"value":"$1"');
+
           nftData = JSON.parse(jsonStr);
         } catch (e) {
           console.warn("⚠️ Failed to parse base64 JSON for token", tokenId, e);
@@ -1083,6 +1087,7 @@ async function loadMyNFTs() {
     nftContainer.innerHTML = "❌ Error loading NFTs: " + err.message;
   }
 }
+
 
 	  
     async function refund() {
