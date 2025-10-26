@@ -970,58 +970,72 @@
     }
   }
 
-  // 🖼️ Hàm hiển thị NFT mà bạn đang sở hữu
-  async function loadMyNFTs() {
+  // 🧩 Hàm decode an toàn cho metadata base64
+function decodeBase64Json(dataUri) {
+  const base64 = dataUri.substring(dataUri.indexOf(",") + 1);
+  const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  const text = new TextDecoder("utf-8").decode(bytes);
+  return JSON.parse(text);
+}
+
+// 🖼️ Hàm hiển thị NFT bạn đang sở hữu
+async function loadMyNFTs() {
   if (!contract || !account) return;
 
   const nftContainer = document.getElementById("nftContainer");
   nftContainer.innerHTML = "🔄 Loading...";
 
   try {
-    const transfers = await contract.getPastEvents("Transfer", {
-      filter: { to: account },
-      fromBlock: 0,
-      toBlock: "latest"
-    });
-
-    const tokenIds = transfers.map(t => t.returnValues.tokenId);
-    if (tokenIds.length === 0) {
+    const balance = await contract.methods.balanceOf(account).call();
+    if (Number(balance) === 0) {
       nftContainer.innerHTML = "😔 You don't own any Puppy NFTs yet.";
       return;
     }
 
     nftContainer.innerHTML = "";
 
-    for (const id of tokenIds) {
-      const uri = await contract.methods.tokenURI(id).call();
-      const base64 = uri.split(",")[1];
-      const json = JSON.parse(atob(base64));
+    for (let i = 0; i < balance; i++) {
+      const tokenId = await contract.methods.tokenOfOwnerByIndex(account, i).call();
+      const uri = await contract.methods.tokenURI(tokenId).call();
 
-      // image IPFS gateway fallback
-      let imgUrl = json.image;
-      if (imgUrl.startsWith("ipfs://")) {
+      let metadata;
+      try {
+        // Giải mã metadata từ Base64 JSON
+        metadata = decodeBase64Json(uri);
+      } catch (err) {
+        console.error("❌ Decode error:", err);
+        nftContainer.innerHTML += `<p>⚠️ Error decoding token ${tokenId}</p>`;
+        continue;
+      }
+
+      // Xử lý ảnh IPFS
+      let imgUrl = metadata.image;
+      if (imgUrl && imgUrl.startsWith("ipfs://")) {
         imgUrl = imgUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
       }
 
+      // Tạo khung hiển thị NFT
       const div = document.createElement("div");
       div.style.border = "1px solid #ccc";
       div.style.borderRadius = "10px";
       div.style.padding = "10px";
       div.style.marginBottom = "15px";
       div.style.background = "#fafafa";
+      div.style.textAlign = "center";
       div.innerHTML = `
-        <strong>${json.name} #${id}</strong><br>
-        <em>Rarity:</em> ${json.attributes[0].value}<br><br>
-        <img src="${imgUrl}" alt="NFT Image" style="max-width: 200px; border-radius: 10px;">
+        <strong>${metadata.name || "Unnamed NFT"} #${tokenId}</strong><br>
+        <em>${metadata.description || ""}</em><br><br>
+        <img src="${imgUrl}" alt="NFT Image" style="max-width: 200px; border-radius: 10px;"><br><br>
+        <span><b>Rarity:</b> ${metadata.attributes?.[0]?.value || "Unknown"}</span>
       `;
       nftContainer.appendChild(div);
     }
-   } catch (err) {
-    console.error(err);
-    nftContainer.innerHTML = "❌ Error loading NFTs.";
-    }
-   }
 
+  } catch (err) {
+    console.error(err);
+    nftContainer.innerHTML = "❌ Error loading NFTs: " + err.message;
+  }
+}
 
     async function refund() {
       const index = document.getElementById("refundIndex").value;
