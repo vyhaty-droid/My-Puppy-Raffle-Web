@@ -996,6 +996,7 @@
       const div = document.createElement("div");
       div.style.padding = "8px";
       div.style.borderBottom = "1px solid #ddd";
+	  div.style.wordBreak = "break-word";
       div.textContent = `Token #${tokenId}: ${uri}`;
       nftContainer.appendChild(div);
     }
